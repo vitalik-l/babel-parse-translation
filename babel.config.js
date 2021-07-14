@@ -17,8 +17,8 @@ module.exports = {
     [
       './babel-plugin.js',
       {
-        localeInPath: './src/locales',
-        localeOutPath: path.resolve(localeOutPath, 'eng.json'),
+        localesInPath: './public/locales',
+        localesOutPath: path.resolve(localeOutPath),
       },
     ],
   ],

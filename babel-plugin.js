@@ -4,7 +4,9 @@ Object.defineProperty(exports, '__esModule', {
   value: true,
 })
 
+const path = require('path')
 const fs = require('fs')
+const glob = require('glob')
 
 const logPrefix = '[babel-plugin-translation]'
 
@@ -71,63 +73,90 @@ ${logPrefix}: ${text}
 }
 
 exports.default = function ({ types: t }) {
-  let strings
-  let localeOutPath
+  let localesOutPath
+  let localesIn
   let needWrite = false
-  let unknownStrings = null
+  const localesOut = {}
+  const baseLang = 'en'
+
+  const getLocalesIn = (localesInPath) => {
+    if (!localesIn) {
+      localesIn = {}
+      const files = glob.sync(`${localesInPath}/*.json`)
+      files.forEach((file) => {
+        const fileParams = path.parse(file)
+        localesIn[fileParams.name] = JSON.parse(fs.readFileSync(file))
+      })
+    }
+  }
+
+  const addKey = (key, { isUnknown = false } = {}) => {
+    Object.keys(localesIn).forEach((name) => {
+      if (!localesOut[name]) localesOut[name] = {}
+      if (!get(localesOut[name], isUnknown ? `__UNKNOWN.${key}` : key)) {
+        const data = localesIn[name]
+        if (isUnknown) {
+          const { __UNKNOWN, ...restStrings } = localesOut[name]
+          localesOut[name] = {
+            __UNKNOWN: {
+              ...__UNKNOWN,
+              [key]: key,
+            },
+            ...restStrings,
+          }
+        } else {
+          const value = get(data, key) || get(localesIn[baseLang], key) || key
+          set(localesOut[name], key, value)
+        }
+        needWrite = true
+      }
+    })
+  }
+
+  const save = () => {
+    if (!needWrite) return
+    success(`write lang strings to file ${localesOutPath}`)
+    Object.keys(localesOut).forEach((name) => {
+      fs.writeFileSync(path.resolve(localesOutPath, `${name}.json`), JSON.stringify(localesOut[name], null, 2))
+    })
+    // const { __UNKNOWN, ...restStrings } = strings
+    // const res = {
+    //   __UNKNOWN: unknownStrings,
+    //   ...restStrings,
+    // }
+    // fs.writeFileSync(localesOutPath, JSON.stringify(unknownStrings ? res : strings, null, 2))
+    needWrite = false
+  }
 
   return {
     visitor: {
-      CallExpression(path, state) {
+      CallExpression(pathParam, state) {
         const options = state.opts
-        const node = path.node
+        const node = pathParam.node
         const arg = node.arguments[0]
         const { fnNames = ['t'] } = options
-        if (!localeOutPath) {
-          localeOutPath = options.localeOutPath
+        if (!localesOutPath) {
+          localesOutPath = options.localesOutPath
         }
         if (!!~fnNames.indexOf(node.callee.name) && arg) {
           if (t.isStringLiteral(arg) && arg.value) {
-            if (!needWrite) {
-              try {
-                const raw = fs.readFileSync(localeOutPath)
-                strings = JSON.parse(raw)
-              } catch (err) {
-                if (!strings) {
-                  strings = {}
-                }
-              }
-            }
-            const value = arg.value
-            const stringValue = get(strings, value)
-            const needToChange = !stringValue
-            if (needToChange) {
-              set(strings, value, value)
-              needWrite = true
-            }
+            addKey(arg.value)
           } else {
             warn(
-              path.buildCodeFrameError(
-                ` found unknown argument ${path.toString()} in the ${path.hub.file.opts.sourceFileName}`,
+              pathParam.buildCodeFrameError(
+                ` found unknown argument ${pathParam.toString()} in the ${pathParam.hub.file.opts.sourceFileName}`,
               ),
             )
-            if (!unknownStrings) unknownStrings = {}
-            unknownStrings[`${path}`] = path.toString()
-            needWrite = true
+            addKey(pathParam.toString(), { isUnknown: true })
           }
         }
       },
       Program: {
+        enter(_, state) {
+          getLocalesIn(state.opts.localesInPath)
+        },
         exit() {
-          if (!needWrite) return
-          success(`write lang strings to file ${localeOutPath}`)
-          const { __UNKNOWN, ...restStrings } = strings
-          const res = {
-            __UNKNOWN: unknownStrings,
-            ...restStrings,
-          }
-          fs.writeFileSync(localeOutPath, JSON.stringify(unknownStrings ? res : strings, null, 2))
-          needWrite = false
+          save()
         },
       },
     },
