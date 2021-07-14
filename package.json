@@ -1,0 +1,14 @@
+{
+  "name": "babel-parse-translation",
+  "version": "1.0.0",
+  "description": "\"lang\": \"babel --extensions \\\".tsx\\\" --config-file ./babel-parse-lang/babel.config.js ./src --out-file ./babel-parse-lang/out.js\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^2.3.2"
+  }
+}
