@@ -51,24 +51,21 @@ function warn(text) {
   console.log(
     '\x1b[33m%s\x1b[0m',
     `
-${logPrefix}: ${text}
-`,
+${logPrefix}: ${text}`,
   );
 }
 function error(text) {
   console.log(
     '\x1b[31m%s\x1b[0m',
     `
-${logPrefix}: ${text}
-`,
+${logPrefix}: ${text}`,
   );
 }
 function success(text) {
   console.log(
     '\x1b[32m%s\x1b[0m',
     `
-${logPrefix}: ${text}
-`,
+  ${logPrefix}: ${text}`,
   );
 }
 
