@@ -13,15 +13,15 @@ const logPrefix = '[babel-plugin-translation]'
 function get(value, path, defaultValue) {
   if (value[path]) return value[path]
   return String(path)
-    .split('.')
-    .reduce((acc, v) => {
-      try {
-        acc = acc[v] === undefined ? defaultValue : acc[v]
-      } catch (e) {
-        return defaultValue
-      }
-      return acc
-    }, value)
+      .split('.')
+      .reduce((acc, v) => {
+        try {
+          acc = acc[v] === undefined ? defaultValue : acc[v]
+        } catch (e) {
+          return defaultValue
+        }
+        return acc
+      }, value)
 }
 
 const set = (obj, path, value) => {
@@ -29,44 +29,44 @@ const set = (obj, path, value) => {
   // If not yet an array, get the keys from the string-path
   if (!Array.isArray(path)) path = path.toString().match(/[^.[\]]+/g) || []
   path.slice(0, -1).reduce(
-    (
-      a,
-      c,
-      i, // Iterate all of them except the last one
-    ) =>
-      Object(a[c]) === a[c] // Does the key exist and is its value an object?
-        ? // Yes: then follow that path
-          a[c]
-        : // No: create the key. Is the next key a potential array-index?
-          (a[c] =
-            Math.abs(path[i + 1]) >> 0 === +path[i + 1]
-              ? [] // Yes: assign a new array object
-              : {}), // No: assign a new plain object
-    obj,
+      (
+          a,
+          c,
+          i, // Iterate all of them except the last one
+      ) =>
+          Object(a[c]) === a[c] // Does the key exist and is its value an object?
+              ? // Yes: then follow that path
+              a[c]
+              : // No: create the key. Is the next key a potential array-index?
+              (a[c] =
+                  Math.abs(path[i + 1]) >> 0 === +path[i + 1]
+                      ? [] // Yes: assign a new array object
+                      : {}), // No: assign a new plain object
+      obj,
   )[path[path.length - 1]] = value // Finally assign the value to the last key
   return obj // Return the top-level object to allow chaining
 }
 
 function warn(text) {
   console.log(
-    '\x1b[33m%s\x1b[0m',
-    `
+      '\x1b[33m%s\x1b[0m',
+      `
 ${logPrefix}: ${text}
 `,
   )
 }
 function error(text) {
   console.log(
-    '\x1b[31m%s\x1b[0m',
-    `
+      '\x1b[31m%s\x1b[0m',
+      `
 ${logPrefix}: ${text}
 `,
   )
 }
 function success(text) {
   console.log(
-    '\x1b[32m%s\x1b[0m',
-    `
+      '\x1b[32m%s\x1b[0m',
+      `
 ${logPrefix}: ${text}
 `,
   )
@@ -75,9 +75,11 @@ ${logPrefix}: ${text}
 exports.default = function ({ types: t }) {
   let localesOutPath
   let localesIn
+  let unknownKeys
   let needWrite = false
+  let baseLang = 'en'
   const localesOut = {}
-  const baseLang = 'en'
+  const untranslated = {}
 
   const getLocalesIn = (localesInPath) => {
     if (!localesIn) {
@@ -90,7 +92,23 @@ exports.default = function ({ types: t }) {
     }
   }
 
+  const getUnknownKeys = (keys) => {
+    if (!unknownKeys) {
+      unknownKeys = keys || {}
+    }
+    return unknownKeys
+  }
+
   const addKey = (key, { isUnknown = false } = {}) => {
+    if (isUnknown) {
+      getUnknownKeys()
+      if (unknownKeys[key]) {
+        unknownKeys[key].forEach((unknownKey) => {
+          addKey(unknownKey)
+        })
+        return
+      }
+    }
     Object.keys(localesIn).forEach((name) => {
       if (!localesOut[name]) localesOut[name] = {}
       if (!get(localesOut[name], isUnknown ? `__UNKNOWN.${key}` : key)) {
@@ -105,8 +123,13 @@ exports.default = function ({ types: t }) {
             ...restStrings,
           }
         } else {
-          const value = get(data, key) || get(localesIn[baseLang], key) || key
+          const baseValue = get(localesIn[baseLang], key)
+          const value = get(data, key) || baseValue || key
           set(localesOut[name], key, value)
+          if (name !== baseLang && value === baseValue) {
+            if (!untranslated[name]) untranslated[name] = {}
+            set(untranslated[name], key, value)
+          }
         }
         needWrite = true
       }
@@ -119,12 +142,10 @@ exports.default = function ({ types: t }) {
     Object.keys(localesOut).forEach((name) => {
       fs.writeFileSync(path.resolve(localesOutPath, `${name}.json`), JSON.stringify(localesOut[name], null, 2))
     })
-    // const { __UNKNOWN, ...restStrings } = strings
-    // const res = {
-    //   __UNKNOWN: unknownStrings,
-    //   ...restStrings,
-    // }
-    // fs.writeFileSync(localesOutPath, JSON.stringify(unknownStrings ? res : strings, null, 2))
+    const untranslatedKeys = Object.keys(untranslated)
+    if (untranslatedKeys.length) {
+      fs.writeFileSync(path.resolve(localesOutPath, `_untranslated.json`), JSON.stringify(untranslated, null, 2))
+    }
     needWrite = false
   }
 
@@ -143,9 +164,9 @@ exports.default = function ({ types: t }) {
             addKey(arg.value)
           } else {
             warn(
-              pathParam.buildCodeFrameError(
-                ` found unknown argument ${pathParam.toString()} in the ${pathParam.hub.file.opts.sourceFileName}`,
-              ),
+                pathParam.buildCodeFrameError(
+                    ` found unknown argument ${pathParam.toString()} in the ${pathParam.hub.file.opts.sourceFileName}`,
+                ),
             )
             addKey(pathParam.toString(), { isUnknown: true })
           }
@@ -154,6 +175,10 @@ exports.default = function ({ types: t }) {
       Program: {
         enter(_, state) {
           getLocalesIn(state.opts.localesInPath)
+          getUnknownKeys(state.opts.unknownKeys)
+          if (state.opts.baseLang) {
+            baseLang = state.opts.baseLang
+          }
         },
         exit() {
           save()
