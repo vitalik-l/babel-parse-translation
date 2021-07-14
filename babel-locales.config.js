@@ -1,5 +1,3 @@
-const path = require('path');
-
 module.exports = {
   presets: [
     '@babel/preset-env',
@@ -16,6 +14,7 @@ module.exports = {
       './babel-plugin.js',
       {
         localesPath: './public/locales',
+        unknownKeys: {},
       },
     ],
   ],
