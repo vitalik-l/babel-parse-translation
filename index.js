@@ -63,6 +63,10 @@ function get(value, path, defaultValue) {
 
 const set = (obj, path, value) => {
   if (Object(obj) !== obj) return obj; // When obj is not an object
+  if (/[\s)(]+/g.test(path)) {
+    obj[path] = value;
+    return;
+  }
   // If not yet an array, get the keys from the string-path
   if (!Array.isArray(path)) path = path.toString().match(/[^.[\]]+/g) || [];
   path.slice(0, -1).reduce(
@@ -122,31 +126,34 @@ exports.default = function ({ types: t }) {
         return;
       }
     }
-    Object.keys(localesIn).forEach((name) => {
-      if (!localesOut[name]) localesOut[name] = {};
-      if (!get(localesOut[name], isUnknown ? `__UNKNOWN.${key}` : key)) {
-        const data = localesIn[name];
-        if (isUnknown) {
-          const { __UNKNOWN, ...restStrings } = localesOut[name];
-          localesOut[name] = {
-            __UNKNOWN: {
-              ...__UNKNOWN,
-              [key]: key,
-            },
-            ...restStrings,
-          };
-        } else {
-          const baseValue = get(localesIn[baseLang], key);
-          const value = get(data, key) || baseValue || key;
-          set(localesOut[name], key, value);
-          if (name !== baseLang && value === baseValue) {
-            if (!untranslated[name]) untranslated[name] = {};
-            set(untranslated[name], key, value);
+
+    Object.keys(localesIn)
+      .sort((a) => (a !== baseLang ? 1 : -1)) // baseLang is first
+      .forEach((name) => {
+        if (!localesOut[name]) localesOut[name] = {};
+        if (!get(localesOut[name], isUnknown ? `__UNKNOWN.${key}` : key)) {
+          const data = localesIn[name];
+          if (isUnknown) {
+            const { __UNKNOWN, ...restStrings } = localesOut[name];
+            localesOut[name] = {
+              __UNKNOWN: {
+                ...__UNKNOWN,
+                [key]: key,
+              },
+              ...restStrings,
+            };
+          } else {
+            const baseValue = get(localesOut[baseLang], key);
+            const value = get(data, key) || baseValue || key;
+            set(localesOut[name], key, value);
+            if (name !== baseLang && value === baseValue) {
+              if (!untranslated[name]) untranslated[name] = {};
+              set(untranslated[name], key, value);
+            }
           }
+          needWrite = true;
         }
-        needWrite = true;
-      }
-    });
+      });
   };
 
   const save = () => {
