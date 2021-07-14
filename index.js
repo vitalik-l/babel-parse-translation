@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const glob = require('glob');
 
-const logPrefix = '[babel-plugin-translation]';
+const logPrefix = '[babel-parse-translation]';
 
 function get(value, path, defaultValue) {
   if (value[path]) return value[path];
