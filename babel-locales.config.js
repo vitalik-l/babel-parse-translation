@@ -1,7 +1,5 @@
 const path = require('path');
 
-const localeOutPath = path.resolve(__dirname, 'locale');
-
 module.exports = {
   presets: [
     '@babel/preset-env',
