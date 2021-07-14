@@ -1,1 +1,1 @@
-"lang": "babel --extensions \".tsx\" --config-file ./babel-parse-lang/babel.config.js ./src --out-file ./babel-parse-lang/out.js"
+"locales": "babel --extensions \".tsx\" --config-file babel-locales.config.js ./src --out-file ./babel-parse-lang/out.js"

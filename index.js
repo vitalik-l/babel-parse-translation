@@ -9,6 +9,43 @@ const fs = require('fs');
 const glob = require('glob');
 
 const logPrefix = '[babel-parse-translation]';
+const nativeStdout = process.stdout.write;
+let silent = true;
+
+const setSilent = () => {
+  if (silent) {
+    process.stdout.write = () => {};
+  }
+};
+
+function warn(text) {
+  process.stdout.write = nativeStdout;
+  console.log(
+    '\x1b[33m%s\x1b[0m',
+    `
+${logPrefix}: ${text}`,
+  );
+  setSilent();
+}
+
+function error(text) {
+  process.stdout.write = nativeStdout;
+  console.log(
+    '\x1b[31m%s\x1b[0m',
+    `
+${logPrefix}: ${text}`,
+  );
+  setSilent();
+}
+function success(text) {
+  process.stdout.write = nativeStdout;
+  console.log(
+    '\x1b[32m%s\x1b[0m',
+    `
+  ${logPrefix}: ${text}`,
+  );
+  setSilent();
+}
 
 function get(value, path, defaultValue) {
   if (value[path]) return value[path];
@@ -46,28 +83,6 @@ const set = (obj, path, value) => {
   )[path[path.length - 1]] = value; // Finally assign the value to the last key
   return obj; // Return the top-level object to allow chaining
 };
-
-function warn(text) {
-  console.log(
-    '\x1b[33m%s\x1b[0m',
-    `
-${logPrefix}: ${text}`,
-  );
-}
-function error(text) {
-  console.log(
-    '\x1b[31m%s\x1b[0m',
-    `
-${logPrefix}: ${text}`,
-  );
-}
-function success(text) {
-  console.log(
-    '\x1b[32m%s\x1b[0m',
-    `
-  ${logPrefix}: ${text}`,
-  );
-}
 
 exports.default = function ({ types: t }) {
   let localesOutPath;
@@ -183,6 +198,9 @@ exports.default = function ({ types: t }) {
           getUnknownKeys(state.opts.unknownKeys);
           if (state.opts.baseLang) {
             baseLang = state.opts.baseLang;
+          }
+          if (state.opts.silent === false) {
+            silent = false;
           }
         },
         exit() {
