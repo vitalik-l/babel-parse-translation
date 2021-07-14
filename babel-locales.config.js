@@ -1,6 +1,6 @@
-const path = require('path')
+const path = require('path');
 
-const localeOutPath = path.resolve(__dirname, 'locale')
+const localeOutPath = path.resolve(__dirname, 'locale');
 
 module.exports = {
   presets: [
@@ -17,9 +17,8 @@ module.exports = {
     [
       './babel-plugin.js',
       {
-        localesInPath: './public/locales',
-        localesOutPath: path.resolve(localeOutPath),
+        localesPath: './public/locales',
       },
     ],
   ],
-}
+};

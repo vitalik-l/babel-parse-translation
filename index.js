@@ -93,10 +93,11 @@ exports.default = function ({ types: t }) {
   const localesOut = {};
   const untranslated = {};
 
-  const getLocalesIn = (localesInPath) => {
+  const getLocalesIn = (localesPath) => {
     if (!localesIn) {
       localesIn = {};
-      const files = glob.sync(`${localesInPath}/*.json`);
+      localesOutPath = path.resolve(localesPath, 'parsed');
+      const files = glob.sync(`${localesPath}/*.json`);
       files.forEach((file) => {
         const fileParams = path.parse(file);
         localesIn[fileParams.name] = JSON.parse(fs.readFileSync(file));
@@ -151,6 +152,7 @@ exports.default = function ({ types: t }) {
   const save = () => {
     if (!needWrite) return;
     success(`write lang strings to file ${localesOutPath}`);
+    fs.mkdirSync(localesOutPath, { recursive: true });
     Object.keys(localesOut).forEach((name) => {
       fs.writeFileSync(
         path.resolve(localesOutPath, `${name}.json`),
@@ -194,7 +196,7 @@ exports.default = function ({ types: t }) {
       },
       Program: {
         enter(_, state) {
-          getLocalesIn(state.opts.localesInPath);
+          getLocalesIn(state.opts.localesPath);
           getUnknownKeys(state.opts.unknownKeys);
           if (state.opts.baseLang) {
             baseLang = state.opts.baseLang;
