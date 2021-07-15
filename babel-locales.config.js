@@ -11,7 +11,7 @@ module.exports = {
   ],
   plugins: [
     [
-      './babel-plugin.js',
+      'parse-translation',
       {
         localesPath: './public/locales',
       },
