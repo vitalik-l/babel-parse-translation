@@ -14,7 +14,6 @@ module.exports = {
       './babel-plugin.js',
       {
         localesPath: './public/locales',
-        unknownKeys: {},
       },
     ],
   ],
