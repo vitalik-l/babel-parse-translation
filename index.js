@@ -88,6 +88,13 @@ const set = (obj, path, value) => {
   return obj; // Return the top-level object to allow chaining
 };
 
+const sortObj = (obj) => {
+  return Object.keys(obj).sort().reduce((acc, key) => {
+    acc[key] = Object(obj[key]) === obj[key] ? sortObj(obj[key]) : obj[key];
+    return acc;
+  }, {})
+}
+
 exports.default = function ({ types: t }) {
   let localesOutPath;
   let localesIn;
@@ -163,14 +170,14 @@ exports.default = function ({ types: t }) {
     Object.keys(localesOut).forEach((name) => {
       fs.writeFileSync(
         path.resolve(localesOutPath, `${name}.json`),
-        JSON.stringify(localesOut[name], null, 2),
+        JSON.stringify(sortObj(localesOut[name]), null, 2),
       );
     });
     const untranslatedKeys = Object.keys(untranslated);
     if (untranslatedKeys.length) {
       fs.writeFileSync(
         path.resolve(localesOutPath, `_untranslated.json`),
-        JSON.stringify(untranslated, null, 2),
+        JSON.stringify(sortObj(untranslated), null, 2),
       );
     }
     needWrite = false;
