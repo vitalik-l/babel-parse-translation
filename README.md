@@ -1,3 +1,5 @@
+***WARNING! it doesn't work since 7.16.* version of babel**
+
 To install:\
 ```yarn add -D babel-plugin-parse-translation```
 

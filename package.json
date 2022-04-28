@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-parse-translation",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "\"lang\": \"babel --extensions \\\".tsx\\\" --config-file ./babel-parse-lang/babel.config.js ./src --out-file ./babel-parse-lang/out.js\"",
   "main": "index.js",
   "scripts": {

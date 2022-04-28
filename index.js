@@ -104,6 +104,12 @@ exports.default = function ({ types: t }) {
   const localesOut = {};
   const untranslated = {};
 
+  const getMemberExpressionProperty = (variable) => {
+    if (t.isMemberExpression(variable)) {
+      return variable?.property?.name;
+    }
+  }
+
   const getLocalesIn = (localesPath) => {
     if (!localesIn) {
       localesIn = {};
@@ -193,7 +199,7 @@ exports.default = function ({ types: t }) {
         if (!localesOutPath) {
           localesOutPath = options.localesOutPath;
         }
-        if (!!~fnNames.indexOf(node.callee.name) && arg) {
+        if (!!~fnNames.indexOf(node.callee.name) || !!~fnNames.indexOf(getMemberExpressionProperty(node.callee)) && arg) {
           if (t.isStringLiteral(arg) && arg.value) {
             addKey(arg.value);
           } else {
